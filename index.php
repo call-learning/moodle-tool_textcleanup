@@ -45,7 +45,7 @@ $PAGE->set_heading($pagetitle);
 $output = $PAGE->get_renderer('tool_textcleanup');
 $PAGE->requires->js_call_amd('tool_textcleanup/selectall', 'init', array());
 
-// The data reload
+// The data reload.
 $isloading = get_config('tool_textcleanup', 'isloadingdata');
 $currentlabel = $isloading ? get_string('dataloading', 'tool_textcleanup')
     : get_string('reloaddata', 'tool_textcleanup');
@@ -54,34 +54,25 @@ $loaddatabutton = new single_button(new moodle_url('#'), $currentlabel);
 $loaddataformid = 'loaddataform';
 $loaddatabutton->formid = $loaddataformid;
 
-// The data cleanup button
+// The data cleanup button.
 $cleanupdataform = new single_button(new moodle_url('#'), get_string('cleanupdata', 'tool_textcleanup'));
-$cleanupdataform->class = 'singlebutton bg-danger p-1 m-1';
 $cleanupdataformid = 'cleanupdataform';
 $cleanupdataform->formid = $cleanupdataformid;
 
-
-if (!$search) {
-    $search = 'document.createElement'; // This is the mark of a trojan
-    // <img src=\"URLOFTHESITE/\"
-    // onerror=\"var s=document.createElement(&quot;script&quot;)...
-}
-
-$form = new search_control_form(null, ['types' => utils::get_all_types()]);
+$searchformid = 'searchform';
+$form = new search_control_form(null, ['types' => utils::get_all_types()], 'post', $target = '', array('id' => $searchformid));
 $form->set_data(['search' => $search]);
-
-$searchtable = new searchtable($search, $types);
-$searchtable->baseurl = $url;
-$searchtable->setup();
-$searchtable->query_db();
+if ($form->is_submitted() && $data = $form->get_data()) {
+    if ($data->search) {
+        $search = $data->search;
+    }
+}
 
 $PAGE->requires->js_call_amd('tool_textcleanup/async_data_manager', 'init', array(
     $loaddataformid,
     $cleanupdataformid,
-    (bool) $isloading,
-    $search,
-    $types,
-    $searchtable->totalrows
+    $searchformid,
+    (bool) $isloading
 ));
 
 echo $output->header();
@@ -92,9 +83,11 @@ echo $form->render();
 echo $output->heading(get_string('actions', 'tool_textcleanup'), 3);
 echo $output->box_start('generalbox d-flex');
 echo $output->render($loaddatabutton);
-echo $output->render($cleanupdataform);
+echo $output->render($cleanupdataform) . html_writer::div('', '', array('id' => 'infoarea'));
 echo $output->box_end();
-
-echo $output->render($searchtable);
-
+if ($search) {
+    $searchtable = new searchtable($search, $types);
+    $searchtable->baseurl = $url;
+    echo $output->render($searchtable);
+}
 echo $output->footer();

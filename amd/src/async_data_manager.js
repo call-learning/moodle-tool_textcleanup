@@ -23,7 +23,7 @@
 define(['jquery', 'core/ajax', 'core/str', 'core/notification'],
     function ($, Ajax, Str, Notification) {
 
-        var MAX_RECORDS = 10;
+        var MAX_RECORDS = 50;
 
         function asyncCall(methodname, args) {
             var request = {
@@ -47,17 +47,17 @@ define(['jquery', 'core/ajax', 'core/str', 'core/notification'],
                         cleanupbutton.prop("disabled", false);
                         infoarea.text('');
                     } else {
-                        cleanupText(search, types, rowcount, donerecords, cleanupbutton, infoarea);
+                        cleanupText(search, types, rowcount, donerecords + data.cleanedrecords, cleanupbutton, infoarea);
                     }
                 }
             }).fail(function (ex) {
                 cleanupbutton.prop("disabled", false);
                 Notification.exception(ex);
-            })
+            });
         }
 
         return {
-            init: function (loadformid, cleanupformid, isloading, search, types, rowcount) {
+            init: function (loadformid, cleanupformid, searchformid, isloading) {
                 $('document').ready(function () {
                     Str.get_strings([
                         {key: 'dataloading', component: 'tool_textcleanup'},
@@ -83,16 +83,39 @@ define(['jquery', 'core/ajax', 'core/str', 'core/notification'],
                                 loadbutton.prop("disabled", false);
                                 loadbutton.val(strings[0]);
                                 Notification.exception(ex);
-                            })
+                            });
+                        });
+                        var formstatus = $('#'+searchformid).serializeArray();
+                        var search = $('#'+searchformid +' #id_search').val();
+                        var types = formstatus.map(function (e) {
+                                return (e.name.startsWith("types[") && e.value != "") ? e.value : null;
+                            }
+                        ).filter(function (e) {
+                            return e !== null;
                         });
 
-                        // Cleanup text.
+                        // Cleanup text button.
                         var cleanupbutton = $('#' + cleanupformid + " input[type=submit]").first();
+                        cleanupbutton.addClass('btn-danger');
+
                         cleanupbutton.click(function (e) {
                             e.preventDefault();
                             cleanupbutton.prop("disabled", true);
-                            var infoarea = cleanupbutton.append('div');
-                            cleanupText(search, types, rowcount, 0, cleanupbutton, infoarea);
+                            var infoarea = $('#infoarea');
+                                asyncCall('tool_textcleanup_get_count_search', {
+                                    'query': search,
+                                    types: types,
+                                }).done(function (data) {
+                                    if (data.searchcount) {
+                                        cleanupText(search, types, data.searchcount, 0, cleanupbutton, infoarea);
+                                    } else {
+                                        cleanupbutton.prop("disabled", false);
+                                    }
+                                }).fail(function (ex) {
+                                    cleanupbutton.prop("disabled", false);
+                                    Notification.exception(ex);
+                                });
+                            cleanupText(search, types, 0, cleanupbutton, infoarea);
                         });
 
                     }).fail(Notification.exception);

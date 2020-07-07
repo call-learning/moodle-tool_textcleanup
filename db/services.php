@@ -21,8 +21,8 @@
  * @copyright  2020 - CALL Learning - Laurent David <laurent@call-learning>
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+defined('MOODLE_INTERNAL') || die();
 
-//
 $functions = array(
     'tool_textcleanup_build_text_table' => array(
         'classname' => 'tool_textcleanup\external',
@@ -38,6 +38,14 @@ $functions = array(
         'description' => 'Cleanup text from all selected entities.',
         'type' => 'write',
         'capabilities' => 'tool/textcleanup:cleanuptext',
+        'ajax' => true,
+    ),
+    'tool_textcleanup_get_count_search' => array(
+        'classname' => 'tool_textcleanup\external',
+        'methodname' => 'get_search_count',
+        'description' => 'Get the search count for the searched text.',
+        'type' => 'write',
+        'capabilities' => 'tool/textcleanup:count',
         'ajax' => true,
     )
 );

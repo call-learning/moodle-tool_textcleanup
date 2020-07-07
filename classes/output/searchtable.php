@@ -47,11 +47,32 @@ require_once($CFG->libdir . '/tablelib.php');
  */
 class searchtable extends table_sql implements renderable {
 
+    /**
+     * Types
+     *
+     * @var array
+     */
     protected $types = [];
+
+    /**
+     * Search string
+     * @var string
+     */
     protected $search = "";
 
+    /**
+     * Default page size
+     */
     const PAGE_SIZE = 10;
+    // TODO: page size should be adjustable.
 
+    /**
+     * searchtable constructor.
+     *
+     * @param string $search
+     * @param array $types
+     * @throws coding_exception
+     */
     public function __construct($search, $types = []) {
         parent::__construct('searchandreplacetext');
 
@@ -104,10 +125,9 @@ class searchtable extends table_sql implements renderable {
      *
      * @param stdClass $row data.
      * @return string HTML for the content column
-     * @throws coding_exception
      */
     public function col_content($row) {
-        return htmlEntities(clean_text($row->content), ENT_QUOTES);
+        return htmlentities(clean_text($row->content), ENT_QUOTES);
     }
 
     /**
@@ -130,12 +150,19 @@ class searchtable extends table_sql implements renderable {
         return '';
     }
 
+    /**
+     * User who modified the resource
+     * @param stdClass $row
+     * @return \lang_string|string
+     * @throws \dml_exception
+     */
     public function col_usermodified($row) {
         return $row->useridmodified ? fullname(core_user::get_user($row->useridmodified)) : '';
     }
 
     /**
-     * @param $row
+     * Selection column. Not used for now.
+     * @param stdClass $row
      * @return string
      * @throws coding_exception
      */
@@ -186,6 +213,12 @@ class searchtable extends table_sql implements renderable {
         return userdate($timestamp, $dateformat);
     }
 
+    /**
+     * Build SQL query for search
+     *
+     * @throws \dml_exception
+     * @throws coding_exception
+     */
     protected function build_sql_search() {
         // Very similar to db_replace function.
         global $DB;
@@ -207,13 +240,22 @@ class searchtable extends table_sql implements renderable {
      */
     public function query_db($pagesize = self::PAGE_SIZE, $useinitialsbar = false) {
         parent::query_db($pagesize, $useinitialsbar);
-
     }
 
+    /**
+     * Get where SQL query
+     * @return array|array[]|string
+     */
     public function get_sql_where() {
         return array([], []);
     }
 
+    /**
+     * Output the table
+     * @param int $pagesize
+     * @param bool $useinitialsbar
+     * @param string $downloadhelpbutton
+     */
     public function out($pagesize = self::PAGE_SIZE, $useinitialsbar = false, $downloadhelpbutton = '') {
         parent::out($pagesize, $useinitialsbar, $downloadhelpbutton);
     }

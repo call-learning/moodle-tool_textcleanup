@@ -13,8 +13,8 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
-
 /**
+ * Form used for filtering
  * @package    tool_textcleanup
  * @copyright  2020 - CALL Learning - Laurent David <laurent@call-learning>
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -27,9 +27,22 @@ require_once($CFG->dirroot . '/lib/formslib.php');
 /**
  * Form for filtering
  */
+
+/**
+ * Form for filtering
+ *
+ * @package    tool_textcleanup
+ * @copyright  2020 - CALL Learning - Laurent David <laurent@call-learning>
+ * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
 class search_control_form extends moodleform {
 
-    function definition() {
+    /**
+     * Form definition
+     *
+     * @throws coding_exception
+     */
+    public function definition() {
         $mform = $this->_form;
         $customdata = $this->_customdata;
 
@@ -38,8 +51,8 @@ class search_control_form extends moodleform {
         // Component.
         $mform->addElement('text', 'search', get_string('searchexpression', 'tool_textcleanup'));
         $mform->setType('search', PARAM_RAW);
-
-        // Types
+        $mform->setDefault('search', 'document.createElement');
+        // Types.
         if (!empty($customdata) && !empty($customdata['types'])) {
             $typecheckb = array();
             foreach ($customdata['types'] as $type) {

@@ -57,8 +57,7 @@ class external extends external_api {
      * Load the temporary table with content from all text fields in the database.
      */
     public static function build_text_table() {
-        $params = self::validate_parameters(self::build_text_table_parameters(),
-            array());
+        self::validate_parameters(self::build_text_table_parameters(), array());
         try {
             set_config('isloadingdata', true, 'tool_textcleanup');
             utils::build_temp_results();
@@ -92,17 +91,25 @@ class external extends external_api {
     }
 
     /**
-     * Load the temporary table with content from all text fields in the database.
+     * Cleanup the text in the set that is returned from the search
+     *
+     * @param string $searchquery
+     * @param array $types
+     * @param int $maxrecords
+     * @return array
+     * @throws \coding_exception
+     * @throws \dml_exception
+     * @throws \invalid_parameter_exception
      */
     public static function cleanup_text($searchquery = "", $types = [], $maxrecords = 0) {
-        $params = self::validate_parameters(self::cleanup_text_parameters(),
+        self::validate_parameters(self::cleanup_text_parameters(),
             ['query' => $searchquery, 'types' => $types, 'maxrecords' => $maxrecords]);
         $recordnums = utils::cleanup_text($searchquery, $types, $maxrecords);
         return ['cleanedrecords' => $recordnums];
     }
 
     /**
-     * Returns description of list_templates() result value.
+     * Returns description of cleanup_text() result value.
      *
      * @return external_description
      */
@@ -112,4 +119,44 @@ class external extends external_api {
         ));
     }
 
+    /**
+     * Get the search count for the searched text
+     *
+     * @return external_function_parameters
+     */
+    public static function get_search_count_parameters() {
+        return new external_function_parameters(array(
+            'query' => new external_value(PARAM_RAW, 'Search query', VALUE_OPTIONAL, ""),
+            'types' => new external_multiple_structure(
+                new external_value(PARAM_ALPHAEXT, 'Type', VALUE_OPTIONAL, ""))
+        ));
+    }
+
+    /**
+     * Get the search count for the searched text
+     *
+     * @param string $searchquery
+     * @param array $types
+     * @return array
+     * @throws \coding_exception
+     * @throws \dml_exception
+     * @throws \invalid_parameter_exception
+     */
+    public static function get_search_count($searchquery = "", $types = []) {
+        self::validate_parameters(self::cleanup_text_parameters(),
+            ['query' => $searchquery, 'types' => $types]);
+        $recordnums = utils::search_count($searchquery, $types);
+        return ['searchcount' => $recordnums];
+    }
+
+    /**
+     * Returns description of get_search_count() result value.
+     *
+     * @return external_description
+     */
+    public static function get_search_count_returns() {
+        return new external_single_structure(array(
+            'searchcount' => new external_value(PARAM_INT, 'Record that have been found'),
+        ));
+    }
 }

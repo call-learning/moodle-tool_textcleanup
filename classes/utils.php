@@ -29,19 +29,23 @@ use dml_exception;
 use stdClass;
 
 defined('MOODLE_INTERNAL') || die;
-global $CFG;
 
+/**
+ * Class utils
+ *
+ * @copyright  2020 - CALL Learning - Laurent David <laurent@call-learning>
+ * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+
+ */
 class utils {
-
-    const LOCATION_TYPE_COURSE = 'course';
 
     /**
      * Get the select query for this table
      * It will return a select that will search in each text field for this table.
      *
-     * @param $columns
-     * @param $table
-     * @return array
+     * @param array $columns
+     * @param string $table
+     * @return string
      */
     public static function get_searchtable_columns_query($columns, $table) {
         global $DB;
@@ -93,7 +97,6 @@ class utils {
     /**
      * Build temporary table with all text content so to be able to search it through
      *
-     * @param $search
      * @throws dml_exception
      */
     public static function build_temp_results() {
@@ -118,7 +121,7 @@ class utils {
 
         if ($tables = $DB->get_tables()) {    // No tables yet at all.
             foreach ($tables as $table) {
-                if (in_array($table, $skiptables)) {      // Don't process these
+                if (in_array($table, $skiptables)) {      // Don't process these.
                     continue;
                 }
                 if ($columns = $DB->get_columns($table)) {
@@ -137,34 +140,66 @@ class utils {
         $insertfieldlist = implode(',', $fields);
         $DB->delete_records(self::TEMP_SEARCHTABLE);
 
-        $sql = "INSERT INTO {" . utils::TEMP_SEARCHTABLE . "} ($insertfieldlist) SELECT " .
+        $sql = "INSERT INTO {" . self::TEMP_SEARCHTABLE . "} ($insertfieldlist) SELECT " .
             "$fieldlist FROM ($selectunion) u";
         $DB->execute($sql); // Load all data into the temp table.
-        // Then add data from the blocks
+        // Then add data from the blocks.
+        self::add_block_table();
     }
 
+    /**
+     * Get fields from temptable
+     *
+     * @return string[]
+     */
     public static function get_fields_temp_table() {
         return array(
             "type", "entityid", "label", "contextid", "useridmodified", "datemodified", "content"
         );
     }
 
-    public static function add_block_html_table() {
+    /**
+     * Add html block content
+     */
+    public static function add_block_table() {
+        global $DB;
+        $instances = $DB->get_recordset('block_instances', array('blockname' => 'html'));
+        $records = [];
+        foreach ($instances as $instance) {
+            // TODO: intentionally hardcoded until MDL-26800 is fixed.
+            $config = unserialize(base64_decode($instance->configdata));
 
+            if (isset($config->text) and is_string($config->text)) {
+                $record = new \stdClass();
+                $record->type = 'block_instances';
+                $record->entityid = $instance->id;
+                $record->label = $instance->blockname;
+                $record->contextid = $instance->parentcontextid;
+                $record->content = $config->text;
+                $record->datemodified = $instance->timemodified;
+                $records[] = $record;
+            }
+        }
+        $DB->insert_records(self::TEMP_SEARCHTABLE, $records);
+        $instances->close();
     }
 
+    /**
+     * Seach table name (temporary table to store results).
+     */
     const TEMP_SEARCHTABLE = 'tool_textcleanup_temp';
 
     /**
      * Get the parent location URL for this entity if it exists
      * If it is a module gets the course URL
      *
-     * @param $table
+     * @param string $table
      * @return string
+     * @throws dml_exception
      */
     public static function get_location_query($table) {
         global $DB;
-        // Check first if this is a module table
+        // Check first if this is a module table.
         $locationquery = "NULL AS contextid";
         $moduleid = $DB->get_field('modules', 'id', array('name' => $table));
         if ($moduleid) {
@@ -178,30 +213,42 @@ class utils {
         return $locationquery;
     }
 
+    /**
+     * Clean up the matching items using moodle clean_text function
+     *
+     * @param string $search
+     * @param array $types
+     * @param int $max
+     * @return int
+     * @throws \coding_exception
+     * @throws dml_exception
+     */
     public static function cleanup_text($search = "", $types = [], $max = 0) {
         global $DB;
-        list($searchparams, $searchsql) = utils::get_temptable_search_sql($search, $types, "");
-        $searchsql .= ' AND wascleaned <> 1';
-        $recordset = $DB->get_recordset_select(self::TEMP_SEARCHTABLE, $searchsql, $searchparams);
-        $dbman = $DB->get_manager();
+        list($searchparams, $searchsql) = self::get_temptable_search_sql($search, $types, "");
+        $recordset =
+            $DB->get_recordset_select(self::TEMP_SEARCHTABLE, $searchsql
+                . ' AND wascleaned <> 1', $searchparams, 'type ASC');
 
+        // Order by type.
         $modifiedrecords = 0;
+        $table = null;
+        $columns = null;
         foreach ($recordset as $rec) {
             if ($max > 0 and $max < $modifiedrecords) {
                 break;
             }
-            $table = $rec->type;
-            $columns = $DB->get_columns($table);
+            // Only column list if necessary.
+            if ($rec->type != $table) {
+                $table = $rec->type;
+                $columns = $DB->get_columns($table);
+            }
             foreach ($columns as $column) {
                 $columnname = $DB->get_manager()->generator->getEncQuoted($column->name);
                 switch ($column->meta_type) {
                     case 'X':
                     case 'C':
-                        $oldvalue = $DB->get_field($table, $columnname, array('id' => $rec->entityid));
-                        $cleanvalue = clean_text($oldvalue);
-                        if ($oldvalue != $cleanvalue) {
-                            $DB->set_field($table, $columnname, $cleanvalue, array('id' => $rec->entityid));
-                        }
+                        self::replace_value_in_table($table, $columnname, $rec->entityid);
                         break;
                 }
 
@@ -210,9 +257,58 @@ class utils {
             $DB->update_record(self::TEMP_SEARCHTABLE, $rec);
             $modifiedrecords++;
         }
+        $recordset->close();
         return $modifiedrecords;
     }
 
+    /**
+     * Replace values in table. Make sure that block instance are treated differently
+     * @param string $table
+     * @param string $columnname
+     * @param int $entityid
+     * @throws dml_exception
+     */
+    protected static function replace_value_in_table($table, $columnname, $entityid) {
+        global $DB;
+        $oldvalue = $DB->get_field($table, $columnname, array('id' => $entityid));
+        if ($table == 'block_instances' && $columnname == 'configdata') {
+            $oldvalueconfig = unserialize(base64_decode($oldvalue));
+            $oldvalueconfig->text = clean_text($oldvalueconfig->text);
+            $cleanvalue = base64_encode(serialize($oldvalueconfig));
+        } else {
+            $cleanvalue = clean_text($oldvalue);
+        }
+        if ($oldvalue != $cleanvalue) {
+            $DB->set_field($table, $columnname, $cleanvalue, array('id' => $entityid));
+        }
+    }
+
+    /**
+     * Search count
+     *
+     * @param string $search
+     * @param array $types
+     * @return int
+     * @throws \coding_exception
+     * @throws dml_exception
+     */
+    public static function search_count($search = "", $types = []) {
+        global $DB;
+        list($searchparams, $searchsql) = self::get_temptable_search_sql($search, $types, "");
+        $totalcount = $DB->count_records_select(self::TEMP_SEARCHTABLE, $searchsql, $searchparams);
+        return $totalcount;
+    }
+
+    /**
+     * Get SQL matchin this search query
+     *
+     * @param string $search
+     * @param array $types
+     * @param string $prefix
+     * @return array
+     * @throws \coding_exception
+     * @throws dml_exception
+     */
     public static function get_temptable_search_sql($search, $types = [], $prefix = 'su') {
         global $DB;
         $realprefix = $prefix ? "$prefix." : "";
@@ -225,7 +321,7 @@ class utils {
         $searchparams[$namedparam] = '%' . $DB->sql_like_escape($search) . '%';
 
         if ($DB->sql_regex_supported()) {
-            // If regex supported, then use them
+            // If regex supported, then use them.
             $searchsql = $columnname . ' ' . $DB->sql_regex() . " :$namedparam";
             $searchparams[$namedparam] = $search;
         }
@@ -237,6 +333,12 @@ class utils {
         return array($searchparams, $searchsql);
     }
 
+    /**
+     * Get all possible table types
+     *
+     * @return array
+     * @throws dml_exception
+     */
     public static function get_all_types() {
         global $DB;
         return $DB->get_fieldset_sql('SELECT DISTINCT type FROM {' . self::TEMP_SEARCHTABLE . '}');
