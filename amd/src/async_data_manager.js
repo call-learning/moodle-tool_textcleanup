@@ -115,7 +115,6 @@ define(['jquery', 'core/ajax', 'core/str', 'core/notification'],
                                     cleanupbutton.prop("disabled", false);
                                     Notification.exception(ex);
                                 });
-                            cleanupText(search, types, 0, cleanupbutton, infoarea);
                         });
 
                     }).fail(Notification.exception);

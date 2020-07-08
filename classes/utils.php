@@ -35,7 +35,6 @@ defined('MOODLE_INTERNAL') || die;
  *
  * @copyright  2020 - CALL Learning - Laurent David <laurent@call-learning>
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
-
  */
 class utils {
 
@@ -81,7 +80,7 @@ class utils {
         if ($selectcolumns) {
             $allcolumns = [];
             $allcolumns[] = "id AS entityid";
-            $allcolumns[] = ($useridcolumn ? $useridcolumn : "NULL") . " AS useridmodified";
+            $allcolumns[] = ($useridcolumn ? $useridcolumn : "NULL") . " AS useridinvolved";
             $allcolumns[] = ($timecolumn ? $timecolumn : 0) . " AS datemodified";
             $allcolumns[] = $DB->sql_concat_join("','", $selectcolumns) . " AS content";
             $allcolumns[] = $locationquery;
@@ -104,7 +103,8 @@ class utils {
         global $DB;
 
         // We skip the same tables as in db_replace but add more that would not have any text.
-        $skiptables = array('config', 'config_plugins', 'config_log', 'upgrade_log', 'log',
+        $skiptables = array('config', 'config_plugins', 'config_log', 'cache_flags', 'course_modules',
+            'upgrade_log', 'log', 'external_services', 'externatl_services_functions', 'search_simpledb_index',
             'filter_config', 'sessions', 'events_queue', 'repository_instance_config',
             'block_instances', 'log_queries', 'log_display',
             'stats_daily', 'stats_monthly', 'stats_user_daily',
@@ -154,7 +154,7 @@ class utils {
      */
     public static function get_fields_temp_table() {
         return array(
-            "type", "entityid", "label", "contextid", "useridmodified", "datemodified", "content"
+            "type", "entityid", "label", "contextid", "useridinvolved", "datemodified", "content"
         );
     }
 
@@ -209,6 +209,27 @@ class utils {
                 WHERE cm.course=course AND cm.module=$moduleid AND cm.instance = entityid
                 LIMIT 1)
                 AS contextid";
+        } else {
+            switch ($table) {
+                case 'course':
+                    $locationquery =
+                        "(SELECT c.id FROM {context} c WHERE c.instanceid =  entityid AND c.contextlevel="
+                        . CONTEXT_COURSE . " LIMIT 1)
+                AS contextid";
+                    break;
+                case 'course_categories':
+                    $locationquery =
+                        "(SELECT c.id FROM {context} c WHERE c.instanceid =  entityid AND c.contextlevel="
+                        . CONTEXT_COURSECAT . " LIMIT 1)
+                AS contextid";
+                    break;
+                case 'user':
+                    $locationquery =
+                        "(SELECT c.id FROM {context} c WHERE c.instanceid =  entityid AND c.contextlevel="
+                        . CONTEXT_USER . " LIMIT 1)
+                AS contextid";
+                    break;
+            }
         }
         return $locationquery;
     }
@@ -263,6 +284,7 @@ class utils {
 
     /**
      * Replace values in table. Make sure that block instance are treated differently
+     *
      * @param string $table
      * @param string $columnname
      * @param int $entityid

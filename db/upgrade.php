@@ -33,5 +33,18 @@ defined('MOODLE_INTERNAL') || die();
 function xmldb_tool_textcleanup_upgrade($oldversion) {
     global $DB;
     $dbman = $DB->get_manager();
+    if ($oldversion < 2020030704) {
+
+        // Rename field useridinvolved on table tool_textcleanup_temp to NEWNAMEGOESHERE.
+        $table = new xmldb_table('tool_textcleanup_temp');
+        $field = new xmldb_field('useridmodified', XMLDB_TYPE_INTEGER, '10', null, null, null, null, 'contextid');
+
+        // Launch rename field useridinvolved.
+        $dbman->rename_field($table, $field, 'useridinvolved');
+
+        // Textcleanup savepoint reached.
+        upgrade_plugin_savepoint(true, 2020030704, 'tool', 'textcleanup');
+    }
+
     return true;
 }

@@ -91,13 +91,13 @@ class searchtable extends table_sql implements renderable {
                 '<div class="selectall"><label class="accesshide" for="selectall">' . get_string('selectall') . '</label>
                     <input type="checkbox" id="selectall" name="selectall" title="' . get_string('selectall') . '"/></div>';
         }
-        $this->define_columns(array_merge($cols, array('type', 'label', 'location', 'usermodified',
+        $this->define_columns(array_merge($cols, array('type', 'label', 'location', 'userinvolved',
             'datemodified', 'content')));
         $this->define_headers(array_merge($headers, array(
                 get_string('type', 'tool_textcleanup'),
                 get_string('label', 'tool_textcleanup'),
                 get_string('location', 'tool_textcleanup'),
-                get_string('usermodified', 'tool_textcleanup'),
+                get_string('userinvolved', 'tool_textcleanup'),
                 get_string('datemodified', 'tool_textcleanup'),
                 get_string('content', 'tool_textcleanup'),
                 get_string('actions', 'tool_textcleanup'),
@@ -156,8 +156,8 @@ class searchtable extends table_sql implements renderable {
      * @return \lang_string|string
      * @throws \dml_exception
      */
-    public function col_usermodified($row) {
-        return $row->useridmodified ? fullname(core_user::get_user($row->useridmodified)) : '';
+    public function col_userinvolved($row) {
+        return $row->useridinvolved ? fullname(core_user::get_user($row->useridinvolved)) : '';
     }
 
     /**

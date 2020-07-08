@@ -79,11 +79,19 @@ echo $output->header();
 echo $output->heading($pagetitle);
 
 echo $form->render();
-
 echo $output->heading(get_string('actions', 'tool_textcleanup'), 3);
+if (empty($CFG->forceclean)) {
+    echo $output->box_start('generalbox alert alert-danger');
+    echo \html_writer::span(
+        get_string(
+            'forcecleanmustenabled',
+            'tool_textcleanup',
+            (new moodle_url('/admin/settings.php?section=experimentalsettings'))->out()));
+    echo $output->box_end();
+}
 echo $output->box_start('generalbox d-flex');
 echo $output->render($loaddatabutton);
-echo $output->render($cleanupdataform) . html_writer::div('', '', array('id' => 'infoarea'));
+echo $output->render($cleanupdataform) . html_writer::div('', 'badge badge-secondary', array('id' => 'infoarea'));
 echo $output->box_end();
 if ($search) {
     $searchtable = new searchtable($search, $types);
