@@ -65,7 +65,7 @@ define(['jquery', 'core/ajax', 'core/str', 'core/notification'],
                     ]).then(function (strings) {
 
                         // Load / Reload data.
-                        var loadbutton = $('#' + loadformid + " input[type=submit]").first();
+                        var loadbutton = $('#' + loadformid + " [type=submit]").first();
                         if (isloading) {
                             loadbutton.val(strings[0]);
                         } else {
@@ -95,7 +95,7 @@ define(['jquery', 'core/ajax', 'core/str', 'core/notification'],
                         });
 
                         // Cleanup text button.
-                        var cleanupbutton = $('#' + cleanupformid + " input[type=submit]").first();
+                        var cleanupbutton = $('#' + cleanupformid + " [type=submit]").first();
                         cleanupbutton.addClass('btn-danger');
 
                         cleanupbutton.click(function (e) {

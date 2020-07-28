@@ -26,7 +26,6 @@ namespace tool_textcleanup;
 
 use core_php_time_limit;
 use dml_exception;
-use stdClass;
 
 defined('MOODLE_INTERNAL') || die;
 
@@ -246,6 +245,9 @@ class utils {
      */
     public static function cleanup_text($search = "", $types = [], $max = 0) {
         global $DB;
+        if (!$search) {
+            return 0;
+        }
         list($searchparams, $searchsql) = self::get_temptable_search_sql($search, $types, "");
         $recordset =
             $DB->get_recordset_select(self::TEMP_SEARCHTABLE, $searchsql
@@ -316,8 +318,11 @@ class utils {
      */
     public static function search_count($search = "", $types = []) {
         global $DB;
-        list($searchparams, $searchsql) = self::get_temptable_search_sql($search, $types, "");
-        $totalcount = $DB->count_records_select(self::TEMP_SEARCHTABLE, $searchsql, $searchparams);
+        $totalcount = 0;
+        if ($search) {
+            list($searchparams, $searchsql) = self::get_temptable_search_sql($search, $types, "");
+            $totalcount = $DB->count_records_select(self::TEMP_SEARCHTABLE, $searchsql, $searchparams);
+        }
         return $totalcount;
     }
 
