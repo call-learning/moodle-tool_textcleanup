@@ -111,7 +111,15 @@ class utils {
             'analytics_indicator_calc', 'analytics_models', 'analytics_models_log', 'analytics_predictions',
             'analytics_predict_samples', 'analytics_train_samples', 'analytics_used_analysables', 'analytics_used_files',
             'assign_plugin_config', 'backup_controllers', 'block', 'capabilities', 'block_positions', 'question_attempt_steps',
-            'question_attempt_step_data', 'logstore_standard_log',
+            'quiz_attempts', 'question_attempt_step_data',
+            'logstore_standard_log',
+            'grade_grades', // No user input here.
+            'files', // No user input here.
+            'stats_weekly', // No user input here.
+            'context',
+            'grade_items_history',
+            'role_assignments',
+            'question_usages',
             'tool_textcleanup_temp', '');
 
         // Turn off time limits, sometimes upgrades can be slow.
