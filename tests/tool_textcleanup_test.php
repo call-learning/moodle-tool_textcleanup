@@ -61,7 +61,7 @@ class tool_textcleanup_testcase extends advanced_testcase {
      */
     const DANGEROUS_SCRIPT = '<img src="myimage" onerror="var s=document.createElement(&quot;script&quot;)"/>';
 
-    public function setUp() {
+    public function setUp(): void {
         global $DB;
         $generator = $this->getDataGenerator();
         $this->setAdminUser();
@@ -149,7 +149,7 @@ class tool_textcleanup_testcase extends advanced_testcase {
         $this->assertEquals(5, count($searchtable->rawdata));
 
         $content = $searchtable->col_content(reset($searchtable->rawdata));
-        $this->assertNotContains('document.createElement', $content);
+        $this->assertStringNotContainsString('document.createElement', $content);
     }
 
     /**
